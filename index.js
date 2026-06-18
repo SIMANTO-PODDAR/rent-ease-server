@@ -1,7 +1,7 @@
 // const dns = require("node:dns");
 // dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express = require('express');
 
 const cors = require('cors');
@@ -35,7 +35,7 @@ async function run() {
 
         //---------     API Endpoint     ---------\\
         app.get('/all-properties', async (req, res) => {                // All Properties
-            const result = await propertiesCollection.find().toArray();
+            const result = await propertiesCollection.find({ status: "approved" }).toArray();
             res.json(result);
         });
 
@@ -43,6 +43,16 @@ async function run() {
             const result = await propertiesCollection.find({ status: "approved" })
                 .limit(6)
                 .toArray();
+
+            res.json(result);
+        });
+
+        app.get("/all-properties/:id", async (req, res) => {            // Get Property by id
+            const { id } = req.params;
+
+            const result = await propertiesCollection.findOne({
+                _id: new ObjectId(id)
+            });
 
             res.json(result);
         });
