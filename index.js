@@ -1,5 +1,5 @@
-// const dns = require("node:dns");
-// dns.setServers(["8.8.8.8", "8.8.4.4"]);
+const dns = require("node:dns");
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express = require('express');
@@ -35,8 +35,36 @@ async function run() {
 
         //---------     API Endpoint     ---------\\
         app.get('/all-properties', async (req, res) => {                // All Properties
-            const result = await propertiesCollection.find({ status: "approved" }).toArray();
-            res.json(result);
+            try {
+                const { search, propertyType, sort } = req.query;
+
+                const query = { status: "approved" };
+
+                if (search) {
+                    query.location = { $regex: search, $options: "i" };
+                }
+
+                if (propertyType) {
+                    query.propertyType = propertyType;
+                }
+
+                let sortOptions = {};
+                if (sort === "price-asc") {
+                    sortOptions.rentPrice = 1;
+                } else if (sort === "price-desc") {
+                    sortOptions.rentPrice = -1;
+                }
+
+                const result = await propertiesCollection
+                    .find(query)
+                    .sort(sortOptions)
+                    .toArray();
+
+                res.json(result);
+            } catch (error) {
+                console.error("Error fetching properties:", error);
+                res.status(500).json({ error: "Internal Server Error" });
+            }
         });
 
         app.get('/featured-properties', async (req, res) => {          // Featured Properties
