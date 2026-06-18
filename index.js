@@ -37,6 +37,9 @@ async function run() {
         app.get('/all-properties', async (req, res) => {                // All Properties
             try {
                 const { search, propertyType, sort } = req.query;
+                const page = parseInt(req.query.page) || 1;
+                const limit = parseInt(req.query.limit) || 6;
+                const skip = (page - 1) * limit;
 
                 const query = { status: "approved" };
 
@@ -55,12 +58,26 @@ async function run() {
                     sortOptions.rentPrice = -1;
                 }
 
-                const result = await propertiesCollection
+                const totalItems = await propertiesCollection.countDocuments(query);
+
+                const properties = await propertiesCollection
                     .find(query)
                     .sort(sortOptions)
+                    .skip(skip)
+                    .limit(limit)
                     .toArray();
 
-                res.json(result);
+                const totalPages = Math.ceil(totalItems / limit);
+
+                res.json({
+                    properties,
+                    pagination: {
+                        currentPage: page,
+                        totalPages,
+                        totalItems,
+                        limit
+                    }
+                });
             } catch (error) {
                 console.error("Error fetching properties:", error);
                 res.status(500).json({ error: "Internal Server Error" });
