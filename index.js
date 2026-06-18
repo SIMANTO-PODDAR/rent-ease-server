@@ -1,5 +1,5 @@
-const dns = require("node:dns");
-dns.setServers(["8.8.8.8", "8.8.4.4"]);
+// const dns = require("node:dns");
+// dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express = require('express');
@@ -32,6 +32,7 @@ async function run() {
         //---------   DB & COLLECTIONS   ---------\\
         const db = client.db('rent-ease');
         const propertiesCollection = db.collection('all-properties');
+        const reviewsCollection = db.collection('all-reviews');
 
         //---------     API Endpoint     ---------\\
         app.get('/all-properties', async (req, res) => {                // All Properties
@@ -98,6 +99,16 @@ async function run() {
             const result = await propertiesCollection.findOne({
                 _id: new ObjectId(id)
             });
+
+            res.json(result);
+        });
+
+        app.get("/all-reviews/:id", async (req, res) => {            // Get Reviews by property id
+            const { id } = req.params;
+
+            const result = await reviewsCollection.find({
+                propertyId: id
+            }).toArray();;
 
             res.json(result);
         });
