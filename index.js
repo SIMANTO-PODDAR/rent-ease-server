@@ -34,6 +34,10 @@ async function run() {
         const propertiesCollection = db.collection('all-properties');
 
         //---------     API Endpoint     ---------\\
+        app.get('/all-properties', async (req, res) => {                // All Properties
+            const result = await propertiesCollection.find().toArray();
+            res.json(result);
+        });
 
 
         //----------------------------------------//
