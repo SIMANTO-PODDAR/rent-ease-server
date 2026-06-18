@@ -113,6 +113,13 @@ async function run() {
             res.json(result);
         });
 
+        app.post('/all-reviews', async (req, res) => {            // ADD 1 Review
+            const review = req.body;
+            const result = await reviewsCollection.insertOne(review);
+            res.json(result);
+        });
+
+
         //----------------------------------------//
         await client.db("admin").command({ ping: 1 });      //   <--- !
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
