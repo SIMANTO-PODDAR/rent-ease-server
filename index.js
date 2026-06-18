@@ -39,6 +39,13 @@ async function run() {
             res.json(result);
         });
 
+        app.get('/featured-properties', async (req, res) => {          // Featured Properties
+            const result = await propertiesCollection.find({ status: "approved" })
+                .limit(6)
+                .toArray();
+
+            res.json(result);
+        });
 
         //----------------------------------------//
         await client.db("admin").command({ ping: 1 });      //   <--- !
