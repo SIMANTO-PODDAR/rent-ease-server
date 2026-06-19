@@ -120,6 +120,20 @@ async function run() {
         });
 
 
+        app.get("/home-reviews", async (req, res) => {            // Get 4 good  tenant Reviews
+            const result = await reviewsCollection
+                .find({
+                    rating: 5,
+                    role: "Tenant"
+                })
+                .limit(4)
+                .toArray();
+
+            res.json(result);
+        });
+
+
+
         //----------------------------------------//
         await client.db("admin").command({ ping: 1 });      //   <--- !
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
