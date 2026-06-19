@@ -33,6 +33,7 @@ async function run() {
         const db = client.db('rent-ease');
         const propertiesCollection = db.collection('all-properties');
         const reviewsCollection = db.collection('all-reviews');
+        const favoritesCollection = db.collection('all-favorites');
 
         //---------     API Endpoint     ---------\\
         app.get('/all-properties', async (req, res) => {                // All Properties
@@ -131,6 +132,14 @@ async function run() {
 
             res.json(result);
         });
+
+
+        app.post('/all-favorites', async (req, res) => {            // Add to Favorites 
+            const favoritesData = req.body;
+            const result = await favoritesCollection.insertOne(favoritesData);
+            res.json(result);
+        });
+
 
 
 
