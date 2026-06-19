@@ -140,7 +140,15 @@ async function run() {
             res.json(result);
         });
 
+        app.get("/all-favorites/:id", async (req, res) => {         // Get favorites property by userId
+            const { id } = req.params;
 
+            const result = await favoritesCollection.find({
+                userId: id
+            }).toArray();;
+
+            res.json(result);
+        });
 
 
         //----------------------------------------//
