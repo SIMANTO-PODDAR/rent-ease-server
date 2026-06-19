@@ -31,12 +31,25 @@ async function run() {
 
         //---------   DB & COLLECTIONS   ---------\\
         const db = client.db('rent-ease');
+
         const propertiesCollection = db.collection('all-properties');
         const reviewsCollection = db.collection('all-reviews');
         const favoritesCollection = db.collection('all-favorites');
+        const bookingsCollection = db.collection('all-bookings');
 
         //---------     API Endpoint     ---------\\
-        app.get('/all-properties', async (req, res) => {                // All Properties
+
+        //---------     Bookings     ---------\\
+        app.post('/all-bookings', async (req, res) => {              // ADD 1 booking
+            const booking = req.body;
+            const result = await bookingsCollection.insertOne(booking);
+            res.json(result);
+        });
+
+
+
+        //---------     Property     ---------\\
+        app.get('/all-properties', async (req, res) => {            // All Properties
             try {
                 const { search, propertyType, sort } = req.query;
                 const page = parseInt(req.query.page) || 1;
@@ -86,7 +99,7 @@ async function run() {
             }
         });
 
-        app.get('/featured-properties', async (req, res) => {          // Featured Properties
+        app.get('/featured-properties', async (req, res) => {       // Featured Properties
             const result = await propertiesCollection.find({ status: "approved" })
                 .limit(6)
                 .toArray();
@@ -94,7 +107,7 @@ async function run() {
             res.json(result);
         });
 
-        app.get("/all-properties/:id", async (req, res) => {            // Get Property by id
+        app.get("/all-properties/:id", async (req, res) => {        // Get Property by id
             const { id } = req.params;
 
             const result = await propertiesCollection.findOne({
@@ -104,7 +117,10 @@ async function run() {
             res.json(result);
         });
 
-        app.get("/all-reviews/:id", async (req, res) => {            // Get Reviews by property id
+
+
+        //---------     Review     ---------\\
+        app.get("/all-reviews/:id", async (req, res) => {           // Get Reviews by property id
             const { id } = req.params;
 
             const result = await reviewsCollection.find({
@@ -114,14 +130,13 @@ async function run() {
             res.json(result);
         });
 
-        app.post('/all-reviews', async (req, res) => {            // ADD 1 Review
+        app.post('/all-reviews', async (req, res) => {              // ADD 1 Review
             const review = req.body;
             const result = await reviewsCollection.insertOne(review);
             res.json(result);
         });
 
-
-        app.get("/home-reviews", async (req, res) => {            // Get 4 good  tenant Reviews
+        app.get("/home-reviews", async (req, res) => {              // Get 4 good  tenant Reviews
             const result = await reviewsCollection
                 .find({
                     rating: 5,
@@ -134,6 +149,8 @@ async function run() {
         });
 
 
+
+        //---------     Favorites     ---------\\
         app.post('/all-favorites', async (req, res) => {            // Add to Favorites 
             const favoritesData = req.body;
             const result = await favoritesCollection.insertOne(favoritesData);
