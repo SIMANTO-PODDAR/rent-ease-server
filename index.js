@@ -27,7 +27,7 @@ const client = new MongoClient(uri, {
 
 async function run() {
     try {
-        await client.connect();                              //   <--- !
+        // await client.connect();                              //   <--- !
 
         //---------   DB & COLLECTIONS   ---------\\
         const db = client.db('rent-ease');
@@ -46,6 +46,17 @@ async function run() {
             res.json(result);
         });
 
+        app.patch("/all-bookings/:bookingId", async (req, res) => {       // Update Booking
+            const { bookingId } = req.params;
+            const Data = req.body;
+
+            // console.log(Data);
+            const result = await bookingsCollection.updateOne(
+                { _id: new ObjectId(bookingId) },
+                { $set: Data },
+            );
+            res.json(result);
+        });
 
 
         //---------     Property     ---------\\
@@ -169,7 +180,7 @@ async function run() {
 
 
         //----------------------------------------//
-        await client.db("admin").command({ ping: 1 });      //   <--- !
+        // await client.db("admin").command({ ping: 1 });      //   <--- !
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
         // await client.close();
