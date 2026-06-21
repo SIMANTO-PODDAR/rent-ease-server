@@ -58,7 +58,7 @@ async function run() {
             res.json(result);
         });
 
-        app.get('/all-bookings/:tenantId', async (req, res) => {       // Get booking data by tenantId
+        app.get('/tenant-bookings/:tenantId', async (req, res) => {       // Get booking data by tenantId
             const { tenantId } = req.params;
 
             const result = await bookingsCollection.find({
@@ -68,6 +68,16 @@ async function run() {
             res.json(result);
         });
 
+        app.get('/owner-bookings/:ownerId', async (req, res) => {       // Get booking data by ownerId
+            const { ownerId } = req.params;
+
+            const result = await bookingsCollection.find({
+                ownerId: ownerId,
+                paymentStatus: "Paid"
+            }).toArray();
+
+            res.json(result);
+        });
 
 
         //---------     Property     ---------\\
@@ -129,7 +139,7 @@ async function run() {
             res.json(result);
         });
 
-        app.get("/all-properties/:id", async (req, res) => {        // Get Property by id
+        app.get("/all-properties/:id", async (req, res) => {        // Get Property by Property id
             const { id } = req.params;
 
             const result = await propertiesCollection.findOne({
