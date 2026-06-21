@@ -149,6 +149,15 @@ async function run() {
             res.json(result);
         });
 
+        app.get("/owner-properties/:ownerId", async (req, res) => {        // Get Properties by ownerId
+            const { ownerId } = req.params;
+
+            const result = await propertiesCollection.find({
+                "owner.id": ownerId
+            }).toArray();
+
+            res.json(result);
+        });
 
 
         //---------     Review     ---------\\
