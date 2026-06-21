@@ -40,13 +40,13 @@ async function run() {
         //---------     API Endpoint     ---------\\
 
         //---------     Bookings     ---------\\
-        app.post('/all-bookings', async (req, res) => {              // ADD 1 booking
+        app.post('/all-bookings', async (req, res) => {                // ADD 1 booking
             const booking = req.body;
             const result = await bookingsCollection.insertOne(booking);
             res.json(result);
         });
 
-        app.patch("/all-bookings/:bookingId", async (req, res) => {       // Update Booking
+        app.patch("/all-bookings/:bookingId", async (req, res) => {    // Update Booking
             const { bookingId } = req.params;
             const Data = req.body;
 
@@ -58,7 +58,7 @@ async function run() {
             res.json(result);
         });
 
-        app.get('/all-bookings/:tenantId', async (req, res) => {    // Get booking data by tenantId
+        app.get('/all-bookings/:tenantId', async (req, res) => {       // Get booking data by tenantId
             const { tenantId } = req.params;
 
             const result = await bookingsCollection.find({
@@ -185,6 +185,16 @@ async function run() {
             const result = await favoritesCollection.find({
                 userId: id
             }).toArray();;
+
+            res.json(result);
+        });
+
+        app.delete("/all-favorites/:itemId", async (req, res) => {      // Delete 1 Favorite i by i Id
+            const { itemId } = req.params;
+
+            const result = await favoritesCollection.deleteOne({
+                _id: new ObjectId(itemId)
+            });
 
             res.json(result);
         });
