@@ -58,6 +58,17 @@ async function run() {
             res.json(result);
         });
 
+        app.get('/all-bookings/:tenantId', async (req, res) => {    // Get booking data by tenantId
+            const { tenantId } = req.params;
+
+            const result = await bookingsCollection.find({
+                tenantId: tenantId
+            }).toArray();
+
+            res.json(result);
+        });
+
+
 
         //---------     Property     ---------\\
         app.get('/all-properties', async (req, res) => {            // All Properties
