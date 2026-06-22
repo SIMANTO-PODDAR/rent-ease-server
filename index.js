@@ -98,6 +98,16 @@ async function run() {
             res.json(result);
         });
 
+        app.delete("/all-properties/:propertyId", async (req, res) => {  // Delete Property Data
+            const { propertyId } = req.params;
+
+            const result = await propertiesCollection.deleteOne({
+                _id: new ObjectId(propertyId)
+            });
+
+            res.json(result);
+        });
+
         app.get('/all-properties', async (req, res) => {            // All Properties
             try {
                 const { search, propertyType, sort } = req.query;
