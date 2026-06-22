@@ -81,6 +81,12 @@ async function run() {
 
 
         //---------     Property     ---------\\
+        app.post('/all-properties', async (req, res) => {           // ADD 1 Property
+            const propertyData = req.body;
+            const result = await propertiesCollection.insertOne(propertyData);
+            res.json(result);
+        });
+
         app.get('/all-properties', async (req, res) => {            // All Properties
             try {
                 const { search, propertyType, sort } = req.query;
