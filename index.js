@@ -87,6 +87,17 @@ async function run() {
             res.json(result);
         });
 
+        app.patch("/all-properties/:propertyId", async (req, res) => {   // Update Property Data
+            const { propertyId } = req.params;
+            const propertyData = req.body;
+
+            const result = await propertiesCollection.updateOne(
+                { _id: new ObjectId(propertyId) },
+                { $set: propertyData },
+            );
+            res.json(result);
+        });
+
         app.get('/all-properties', async (req, res) => {            // All Properties
             try {
                 const { search, propertyType, sort } = req.query;
