@@ -58,7 +58,7 @@ async function run() {
             res.json(result);
         });
 
-        app.get('/tenant-bookings/:tenantId', async (req, res) => {       // Get booking data by tenantId
+        app.get('/tenant-bookings/:tenantId', async (req, res) => {    // Get booking data by tenantId
             const { tenantId } = req.params;
 
             const result = await bookingsCollection.find({
@@ -68,12 +68,11 @@ async function run() {
             res.json(result);
         });
 
-        app.get('/owner-bookings/:ownerId', async (req, res) => {       // Get booking data by ownerId
+        app.get('/owner-bookings/:ownerId', async (req, res) => {      // Get booking data by ownerId
             const { ownerId } = req.params;
 
             const result = await bookingsCollection.find({
-                ownerId: ownerId,
-                paymentStatus: "Paid"
+                ownerId: ownerId
             }).toArray();
 
             res.json(result);
@@ -81,7 +80,7 @@ async function run() {
 
 
         //---------     Property     ---------\\
-        app.post('/all-properties', async (req, res) => {           // ADD 1 Property
+        app.post('/all-properties', async (req, res) => {                // ADD 1 Property
             const propertyData = req.body;
             const result = await propertiesCollection.insertOne(propertyData);
             res.json(result);
@@ -176,7 +175,7 @@ async function run() {
             res.json(result);
         });
 
-        app.get("/owner-properties/:ownerId", async (req, res) => {        // Get Properties by ownerId
+        app.get("/owner-properties/:ownerId", async (req, res) => {      // Get Properties by ownerId
             const { ownerId } = req.params;
 
             const result = await propertiesCollection.find({
@@ -235,7 +234,7 @@ async function run() {
             res.json(result);
         });
 
-        app.delete("/all-favorites/:itemId", async (req, res) => {      // Delete 1 Favorite i by i Id
+        app.delete("/all-favorites/:itemId", async (req, res) => {       // Delete 1 Favorite i by i Id
             const { itemId } = req.params;
 
             const result = await favoritesCollection.deleteOne({
