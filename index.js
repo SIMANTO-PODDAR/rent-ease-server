@@ -40,13 +40,19 @@ async function run() {
         //---------     API Endpoint     ---------\\
 
         //---------     Bookings     ---------\\
-        app.post('/all-bookings', async (req, res) => {                // ADD 1 booking
+
+        app.get('/all-bookings', async (req, res) => {                   // All Bookings Data
+            const result = await bookingsCollection.find().toArray();
+            res.json(result);
+        });
+
+        app.post('/all-bookings', async (req, res) => {                  // ADD 1 booking
             const booking = req.body;
             const result = await bookingsCollection.insertOne(booking);
             res.json(result);
         });
 
-        app.patch("/all-bookings/:bookingId", async (req, res) => {    // Update Booking
+        app.patch("/all-bookings/:bookingId", async (req, res) => {      // Update Booking
             const { bookingId } = req.params;
             const Data = req.body;
 
@@ -58,7 +64,7 @@ async function run() {
             res.json(result);
         });
 
-        app.get('/tenant-bookings/:tenantId', async (req, res) => {    // Get booking data by tenantId
+        app.get('/tenant-bookings/:tenantId', async (req, res) => {      // Get booking data by tenantId
             const { tenantId } = req.params;
 
             const result = await bookingsCollection.find({
@@ -68,7 +74,7 @@ async function run() {
             res.json(result);
         });
 
-        app.get('/owner-bookings/:ownerId', async (req, res) => {      // Get booking data by ownerId
+        app.get('/owner-bookings/:ownerId', async (req, res) => {        // Get booking data by ownerId
             const { ownerId } = req.params;
 
             const result = await bookingsCollection.find({
@@ -193,7 +199,7 @@ async function run() {
             res.json(result);
         });
 
-        app.get("/owner-properties/:ownerId", async (req, res) => {      // Get Properties by ownerId
+        app.get("/owner-properties/:ownerId", async (req, res) => { // Get Properties by ownerId
             const { ownerId } = req.params;
 
             const result = await propertiesCollection.find({
@@ -252,7 +258,7 @@ async function run() {
             res.json(result);
         });
 
-        app.delete("/all-favorites/:itemId", async (req, res) => {       // Delete 1 Favorite i by i Id
+        app.delete("/all-favorites/:itemId", async (req, res) => {  // Delete 1 Favorite i by i Id
             const { itemId } = req.params;
 
             const result = await favoritesCollection.deleteOne({
