@@ -31,13 +31,34 @@ async function run() {
 
         //---------   DB & COLLECTIONS   ---------\\
         const db = client.db('rent-ease');
+        const dbAuth = client.db('rent-ease-auth');
 
         const propertiesCollection = db.collection('all-properties');
         const reviewsCollection = db.collection('all-reviews');
         const favoritesCollection = db.collection('all-favorites');
         const bookingsCollection = db.collection('all-bookings');
+        const usersCollection = dbAuth.collection("user");
 
         //---------     API Endpoint     ---------\\
+
+        //---------     User     ---------\\
+        app.get('/all-user', async (req, res) => {                  // All User
+            const result = await usersCollection.find().toArray();
+            res.json(result);
+        });
+
+        app.patch("/all-user/:userId", async (req, res) => {        // Update User Role
+            const { userId } = req.params;
+            const userRole = req.body;
+
+            const result = await usersCollection.updateOne(
+                { _id: new ObjectId(userId) },
+                { $set: userRole },
+            );
+            res.json(result);
+        });
+
+
 
         //---------     Bookings     ---------\\
 
@@ -83,6 +104,7 @@ async function run() {
 
             res.json(result);
         });
+
 
 
         //---------     Property     ---------\\
@@ -210,6 +232,7 @@ async function run() {
         });
 
 
+
         //---------     Review     ---------\\
         app.get("/all-reviews/:id", async (req, res) => {           // Get Reviews by property id
             const { id } = req.params;
@@ -267,6 +290,7 @@ async function run() {
 
             res.json(result);
         });
+
 
 
         //----------------------------------------//
