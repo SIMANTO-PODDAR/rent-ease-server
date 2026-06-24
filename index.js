@@ -80,6 +80,11 @@ async function run() {
 
 
         //---------     Property     ---------\\
+        app.get('/all-properties/admin', async (req, res) => {           // All Properties Data for Admin
+            const result = await propertiesCollection.find().toArray();
+            res.json(result);
+        });
+
         app.post('/all-properties', async (req, res) => {                // ADD 1 Property
             const propertyData = req.body;
             const result = await propertiesCollection.insertOne(propertyData);
@@ -107,14 +112,14 @@ async function run() {
             res.json(result);
         });
 
-        app.get('/all-properties', async (req, res) => {            // All Properties
+        app.get('/all-properties', async (req, res) => {            // All Properties  (status: "Approved")
             try {
                 const { search, propertyType, sort } = req.query;
                 const page = parseInt(req.query.page) || 1;
                 const limit = parseInt(req.query.limit) || 6;
                 const skip = (page - 1) * limit;
 
-                const query = { status: "approved" };
+                const query = { status: "Approved" };
 
                 if (search) {
                     query.location = { $regex: search, $options: "i" };
@@ -158,7 +163,7 @@ async function run() {
         });
 
         app.get('/featured-properties', async (req, res) => {       // Featured Properties
-            const result = await propertiesCollection.find({ status: "approved" })
+            const result = await propertiesCollection.find({ status: "Approved" })
                 .limit(6)
                 .toArray();
 
