@@ -81,8 +81,21 @@ async function run() {
 
         //---------     Property     ---------\\
         app.get('/all-properties/admin', async (req, res) => {           // All Properties Data for Admin
-            const result = await propertiesCollection.find().toArray();
-            res.json(result);
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 15;
+            const skip = (page - 1) * limit;
+
+            const totalProperties = await propertiesCollection.countDocuments();
+            const totalPages = Math.ceil(totalProperties / limit);
+
+            const result = await propertiesCollection.find().skip(skip).limit(limit).toArray();
+
+            res.json({
+                properties: result,
+                totalProperties,
+                totalPages,
+                currentPage: page
+            });
         });
 
         app.post('/all-properties', async (req, res) => {                // ADD 1 Property
