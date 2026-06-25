@@ -126,7 +126,7 @@ async function run() {
             res.json(result);
         });
 
-        app.patch("/all-bookings/:bookingId", async (req, res) => {      // Update Booking
+        app.patch("/all-bookings/:bookingId", verifyUserToken, verifyRole("Owner"), async (req, res) => {      // Update Booking
             const { bookingId } = req.params;
             const Data = req.body;
 
@@ -148,7 +148,7 @@ async function run() {
             res.json(result);
         });
 
-        app.get('/owner-bookings/:ownerId', async (req, res) => {        // Get booking data by ownerId
+        app.get('/owner-bookings/:ownerId', verifyUserToken, verifyRole("Owner"), async (req, res) => {        // Get booking data by ownerId
             const { ownerId } = req.params;
 
             const result = await bookingsCollection.find({
@@ -179,13 +179,13 @@ async function run() {
             });
         });
 
-        app.post('/all-properties', async (req, res) => {                // ADD 1 Property
+        app.post('/all-properties', verifyUserToken, verifyRole("Owner"), async (req, res) => {                // ADD 1 Property
             const propertyData = req.body;
             const result = await propertiesCollection.insertOne(propertyData);
             res.json(result);
         });
 
-        app.patch("/all-properties/:propertyId", verifyUserToken, verifyRole("Admin"), async (req, res) => {   // Update Property Data
+        app.patch("/all-properties/:propertyId", verifyUserToken, verifyRole("Admin", "Owner"), async (req, res) => {   // Update Property Data
             const { propertyId } = req.params;
             const propertyData = req.body;
 
@@ -196,7 +196,7 @@ async function run() {
             res.json(result);
         });
 
-        app.delete("/all-properties/:propertyId", verifyUserToken, verifyRole("Admin"), async (req, res) => {  // Delete Property Data
+        app.delete("/all-properties/:propertyId", verifyUserToken, verifyRole("Admin", "Owner"), async (req, res) => {  // Delete Property Data
             const { propertyId } = req.params;
 
             const result = await propertiesCollection.deleteOne({
@@ -274,7 +274,7 @@ async function run() {
             res.json(result);
         });
 
-        app.get("/owner-properties/:ownerId", async (req, res) => { // Get Properties by ownerId
+        app.get("/owner-properties/:ownerId", verifyUserToken, verifyRole("Owner"), async (req, res) => { // Get Properties by ownerId
             const { ownerId } = req.params;
 
             const result = await propertiesCollection.find({
