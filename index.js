@@ -6,6 +6,7 @@ const express = require('express');
 
 const cors = require('cors');
 const dotenv = require('dotenv');
+const { jwtVerify, createRemoteJWKSet } = require('jose-cjs');
 
 const app = express();
 app.use(cors());
@@ -25,6 +26,58 @@ const client = new MongoClient(uri, {
 });
 
 
+const JWKS = createRemoteJWKSet(new URL(`${process.env.CLIENT_URL}/api/auth/jwks`));
+
+const verifyUserToken = async (req, res, next) => {                 // Verify User
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) {
+        return res.status(401).json({
+            message: "Unauthorized"
+        });
+    }
+
+    const userToken = authHeader.split(" ")[1];
+
+    if (!userToken) {
+        return res.status(401).json({
+            message: "Unauthorized"
+        });
+    }
+
+    try {
+        const { payload } = await jwtVerify(userToken, JWKS);
+        req.user = payload;
+
+        next();
+    } catch (error) {
+        return res.status(403).json({
+            message: "Token verification failed. Please log in again."
+        });
+    }
+};
+
+const verifyRole = (...roles) => {                                  // Verify Role ("Tenant", "Owner", "Admin")
+    return (req, res, next) => {
+
+        // console.log(req.user)
+        if (!req.user) {
+            return res.status(401).json({
+                message: "Unauthorized"
+            });
+        }
+
+        if (!roles.includes(req.user.role)) {
+            return res.status(403).json({
+                message: "Forbidden"
+            });
+        }
+
+        next();
+    };
+};
+
+
 async function run() {
     try {
         // await client.connect();                              //   <--- !
@@ -42,12 +95,12 @@ async function run() {
         //---------     API Endpoint     ---------\\
 
         //---------     User     ---------\\
-        app.get('/all-user', async (req, res) => {                  // All User
+        app.get('/all-user', verifyUserToken, verifyRole("Admin"), async (req, res) => {                  // All User
             const result = await usersCollection.find().toArray();
             res.json(result);
         });
 
-        app.patch("/all-user/:userId", async (req, res) => {        // Update User Role
+        app.patch("/all-user/:userId", verifyUserToken, verifyRole("Admin"), async (req, res) => {        // Update User Role
             const { userId } = req.params;
             const userRole = req.body;
 
@@ -62,7 +115,7 @@ async function run() {
 
         //---------     Bookings     ---------\\
 
-        app.get('/all-bookings', async (req, res) => {                   // All Bookings Data
+        app.get('/all-bookings', verifyUserToken, verifyRole("Admin"), async (req, res) => {                   // All Bookings Data
             const result = await bookingsCollection.find().toArray();
             res.json(result);
         });
@@ -108,7 +161,7 @@ async function run() {
 
 
         //---------     Property     ---------\\
-        app.get('/all-properties/admin', async (req, res) => {           // All Properties Data for Admin
+        app.get('/all-properties/admin', verifyUserToken, verifyRole("Admin"), async (req, res) => {           // All Properties Data for Admin
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 15;
             const skip = (page - 1) * limit;
@@ -132,7 +185,7 @@ async function run() {
             res.json(result);
         });
 
-        app.patch("/all-properties/:propertyId", async (req, res) => {   // Update Property Data
+        app.patch("/all-properties/:propertyId", verifyUserToken, verifyRole("Admin"), async (req, res) => {   // Update Property Data
             const { propertyId } = req.params;
             const propertyData = req.body;
 
@@ -143,7 +196,7 @@ async function run() {
             res.json(result);
         });
 
-        app.delete("/all-properties/:propertyId", async (req, res) => {  // Delete Property Data
+        app.delete("/all-properties/:propertyId", verifyUserToken, verifyRole("Admin"), async (req, res) => {  // Delete Property Data
             const { propertyId } = req.params;
 
             const result = await propertiesCollection.deleteOne({
@@ -198,7 +251,7 @@ async function run() {
                     }
                 });
             } catch (error) {
-                console.error("Error fetching properties:", error);
+                // console.error("Error fetching properties:", error);
                 res.status(500).json({ error: "Internal Server Error" });
             }
         });
