@@ -80,7 +80,7 @@ const verifyRole = (...roles) => {                                  // Verify Ro
 
 async function run() {
     try {
-        // await client.connect();                              //   <--- !
+        // await client.connect();                                  //   <--- !
 
         //---------   DB & COLLECTIONS   ---------\\
         const db = client.db('rent-ease');
@@ -92,15 +92,19 @@ async function run() {
         const bookingsCollection = db.collection('all-bookings');
         const usersCollection = dbAuth.collection("user");
 
+
         //---------     API Endpoint     ---------\\
 
         //---------     User     ---------\\
-        app.get('/all-user', verifyUserToken, verifyRole("Admin"), async (req, res) => {                  // All User
+
+        // All User
+        app.get('/all-user', verifyUserToken, verifyRole("Admin"), async (req, res) => {
             const result = await usersCollection.find().toArray();
             res.json(result);
         });
 
-        app.patch("/all-user/:userId", verifyUserToken, verifyRole("Admin"), async (req, res) => {        // Update User Role
+        // Update User Role
+        app.patch("/all-user/:userId", verifyUserToken, verifyRole("Admin"), async (req, res) => {
             const { userId } = req.params;
             const userRole = req.body;
 
@@ -115,18 +119,21 @@ async function run() {
 
         //---------     Bookings     ---------\\
 
-        app.get('/all-bookings', verifyUserToken, verifyRole("Admin"), async (req, res) => {                   // All Bookings Data
+        // All Bookings Data
+        app.get('/all-bookings', verifyUserToken, verifyRole("Admin"), async (req, res) => {
             const result = await bookingsCollection.find().toArray();
             res.json(result);
         });
 
-        app.post('/all-bookings', async (req, res) => {                  // ADD 1 booking
+        // ADD 1 booking
+        app.post('/all-bookings', verifyUserToken, verifyRole("Tenant"), async (req, res) => {
             const booking = req.body;
             const result = await bookingsCollection.insertOne(booking);
             res.json(result);
         });
 
-        app.patch("/all-bookings/:bookingId", verifyUserToken, verifyRole("Owner"), async (req, res) => {      // Update Booking
+        // Update Booking
+        app.patch("/all-bookings/:bookingId", verifyUserToken, verifyRole("Owner", "Tenant"), async (req, res) => {
             const { bookingId } = req.params;
             const Data = req.body;
 
@@ -138,7 +145,8 @@ async function run() {
             res.json(result);
         });
 
-        app.get('/tenant-bookings/:tenantId', async (req, res) => {      // Get booking data by tenantId
+        // Get booking data by tenantId
+        app.get('/tenant-bookings/:tenantId', verifyUserToken, verifyRole("Tenant"), async (req, res) => {
             const { tenantId } = req.params;
 
             const result = await bookingsCollection.find({
@@ -148,7 +156,8 @@ async function run() {
             res.json(result);
         });
 
-        app.get('/owner-bookings/:ownerId', verifyUserToken, verifyRole("Owner"), async (req, res) => {        // Get booking data by ownerId
+        // Get booking data by ownerId
+        app.get('/owner-bookings/:ownerId', verifyUserToken, verifyRole("Owner"), async (req, res) => {
             const { ownerId } = req.params;
 
             const result = await bookingsCollection.find({
@@ -161,7 +170,9 @@ async function run() {
 
 
         //---------     Property     ---------\\
-        app.get('/all-properties/admin', verifyUserToken, verifyRole("Admin"), async (req, res) => {           // All Properties Data for Admin
+
+        // All Properties Data for Admin
+        app.get('/all-properties/admin', verifyUserToken, verifyRole("Admin"), async (req, res) => {
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 15;
             const skip = (page - 1) * limit;
@@ -179,13 +190,15 @@ async function run() {
             });
         });
 
-        app.post('/all-properties', verifyUserToken, verifyRole("Owner"), async (req, res) => {                // ADD 1 Property
+        // ADD 1 Property
+        app.post('/all-properties', verifyUserToken, verifyRole("Owner"), async (req, res) => {
             const propertyData = req.body;
             const result = await propertiesCollection.insertOne(propertyData);
             res.json(result);
         });
 
-        app.patch("/all-properties/:propertyId", verifyUserToken, verifyRole("Admin", "Owner"), async (req, res) => {   // Update Property Data
+        // Update Property Data
+        app.patch("/all-properties/:propertyId", verifyUserToken, verifyRole("Admin", "Owner"), async (req, res) => {
             const { propertyId } = req.params;
             const propertyData = req.body;
 
@@ -196,7 +209,8 @@ async function run() {
             res.json(result);
         });
 
-        app.delete("/all-properties/:propertyId", verifyUserToken, verifyRole("Admin", "Owner"), async (req, res) => {  // Delete Property Data
+        // Delete Property Data
+        app.delete("/all-properties/:propertyId", verifyUserToken, verifyRole("Admin", "Owner"), async (req, res) => {
             const { propertyId } = req.params;
 
             const result = await propertiesCollection.deleteOne({
@@ -206,7 +220,8 @@ async function run() {
             res.json(result);
         });
 
-        app.get('/all-properties', async (req, res) => {            // All Properties  (status: "Approved")
+        // (public) All Properties  (status: "Approved")
+        app.get('/all-properties', async (req, res) => {
             try {
                 const { search, propertyType, sort } = req.query;
                 const page = parseInt(req.query.page) || 1;
@@ -256,7 +271,8 @@ async function run() {
             }
         });
 
-        app.get('/featured-properties', async (req, res) => {       // Featured Properties
+        // (public) Featured Properties
+        app.get('/featured-properties', async (req, res) => {
             const result = await propertiesCollection.find({ status: "Approved" })
                 .limit(6)
                 .toArray();
@@ -264,7 +280,8 @@ async function run() {
             res.json(result);
         });
 
-        app.get("/all-properties/:id", async (req, res) => {        // Get Property by Property id
+        // Get Property by Property id
+        app.get("/all-properties/:id", verifyUserToken, async (req, res) => {
             const { id } = req.params;
 
             const result = await propertiesCollection.findOne({
@@ -274,7 +291,8 @@ async function run() {
             res.json(result);
         });
 
-        app.get("/owner-properties/:ownerId", verifyUserToken, verifyRole("Owner"), async (req, res) => { // Get Properties by ownerId
+        // Get Properties by ownerId
+        app.get("/owner-properties/:ownerId", verifyUserToken, verifyRole("Owner"), async (req, res) => {
             const { ownerId } = req.params;
 
             const result = await propertiesCollection.find({
@@ -287,7 +305,9 @@ async function run() {
 
 
         //---------     Review     ---------\\
-        app.get("/all-reviews/:id", async (req, res) => {           // Get Reviews by property id
+
+        // Get Reviews by property id
+        app.get("/all-reviews/:id", verifyUserToken, async (req, res) => {
             const { id } = req.params;
 
             const result = await reviewsCollection.find({
@@ -297,13 +317,15 @@ async function run() {
             res.json(result);
         });
 
-        app.post('/all-reviews', async (req, res) => {              // ADD 1 Review
+        // ADD 1 Review
+        app.post('/all-reviews', verifyUserToken, verifyRole("Tenant"), async (req, res) => {
             const review = req.body;
             const result = await reviewsCollection.insertOne(review);
             res.json(result);
         });
 
-        app.get("/home-reviews", async (req, res) => {              // Get 4 good  tenant Reviews
+        // (public) Get 4 good  tenant Reviews
+        app.get("/home-reviews", async (req, res) => {
             const result = await reviewsCollection
                 .find({
                     rating: 5,
@@ -318,13 +340,16 @@ async function run() {
 
 
         //---------     Favorites     ---------\\
-        app.post('/all-favorites', async (req, res) => {            // Add to Favorites 
+
+        // Add to Favorites
+        app.post('/all-favorites', verifyUserToken, verifyRole("Tenant"), async (req, res) => {
             const favoritesData = req.body;
             const result = await favoritesCollection.insertOne(favoritesData);
             res.json(result);
         });
 
-        app.get("/all-favorites/:id", async (req, res) => {         // Get favorites property by userId
+        // Get favorites property by userId
+        app.get("/all-favorites/:id", verifyUserToken, verifyRole("Tenant"), async (req, res) => {
             const { id } = req.params;
 
             const result = await favoritesCollection.find({
@@ -334,7 +359,8 @@ async function run() {
             res.json(result);
         });
 
-        app.delete("/all-favorites/:itemId", async (req, res) => {  // Delete 1 Favorite i by i Id
+        // Delete 1 Favorite i by i Id
+        app.delete("/all-favorites/:itemId", verifyUserToken, verifyRole("Tenant"), async (req, res) => {
             const { itemId } = req.params;
 
             const result = await favoritesCollection.deleteOne({
