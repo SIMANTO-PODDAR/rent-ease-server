@@ -1,5 +1,5 @@
-// const dns = require("node:dns");
-// dns.setServers(["8.8.8.8", "8.8.4.4"]);
+const dns = require("node:dns");
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express = require('express');
@@ -9,12 +9,17 @@ const dotenv = require('dotenv');
 const { jwtVerify, createRemoteJWKSet } = require('jose-cjs');
 
 const app = express();
-app.use(cors());
+app.use(
+    cors({
+        credentials: true,
+        origin: [process.env.CLIENT_URL],
+    }),
+);
 dotenv.config();
 
 const uri = process.env.MONGODB_URI;
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT;
 app.use(express.json());
 
 const client = new MongoClient(uri, {
@@ -84,13 +89,12 @@ async function run() {
 
         //---------   DB & COLLECTIONS   ---------\\
         const db = client.db('rent-ease');
-        const dbAuth = client.db('rent-ease-auth');
 
         const propertiesCollection = db.collection('all-properties');
         const reviewsCollection = db.collection('all-reviews');
         const favoritesCollection = db.collection('all-favorites');
         const bookingsCollection = db.collection('all-bookings');
-        const usersCollection = dbAuth.collection("user");
+        const usersCollection = db.collection("user");
 
 
         //---------     API Endpoint     ---------\\
