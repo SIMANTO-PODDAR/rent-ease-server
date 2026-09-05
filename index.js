@@ -103,6 +103,24 @@ async function run() {
 
         // All User
         app.get('/all-user', verifyUserToken, verifyRole("Admin"), async (req, res) => {
+            if (req.query.page || req.query.limit) {
+                const page = parseInt(req.query.page) || 1;
+                const limit = parseInt(req.query.limit) || 10;
+                const skip = (page - 1) * limit;
+
+                const totalUsers = await usersCollection.countDocuments();
+                const totalPages = Math.ceil(totalUsers / limit);
+
+                const result = await usersCollection.find().skip(skip).limit(limit).toArray();
+
+                return res.json({
+                    users: result,
+                    totalUsers,
+                    totalPages,
+                    currentPage: page
+                });
+            }
+
             const result = await usersCollection.find().toArray();
             res.json(result);
         });
@@ -125,6 +143,24 @@ async function run() {
 
         // All Bookings Data
         app.get('/all-bookings', verifyUserToken, verifyRole("Admin"), async (req, res) => {
+            if (req.query.page || req.query.limit) {
+                const page = parseInt(req.query.page) || 1;
+                const limit = parseInt(req.query.limit) || 10;
+                const skip = (page - 1) * limit;
+
+                const totalBookings = await bookingsCollection.countDocuments();
+                const totalPages = Math.ceil(totalBookings / limit);
+
+                const result = await bookingsCollection.find().skip(skip).limit(limit).toArray();
+
+                return res.json({
+                    bookings: result,
+                    totalBookings,
+                    totalPages,
+                    currentPage: page
+                });
+            }
+
             const result = await bookingsCollection.find().toArray();
             res.json(result);
         });
