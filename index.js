@@ -1,26 +1,31 @@
 const dns = require("node:dns");
 dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
+const dotenv = require("dotenv");
+dotenv.config();
+
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const express = require("express");
-
 const cors = require("cors");
-const dotenv = require("dotenv");
 const { jwtVerify, createRemoteJWKSet } = require("jose-cjs");
 
 const app = express();
+
+const allowedOrigins = process.env.CLIENT_URL
+  ? process.env.CLIENT_URL.split(",").map((url) => url.trim().replace(/\/$/, ""))
+  : [];
+
 app.use(
   cors({
     credentials: true,
-    origin: [process.env.CLIENT_URL],
+    origin: allowedOrigins,
   }),
 );
-dotenv.config();
+
+app.use(express.json());
 
 const uri = process.env.MONGODB_URI;
-
 const PORT = process.env.PORT;
-app.use(express.json());
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -31,7 +36,7 @@ const client = new MongoClient(uri, {
 });
 
 const JWKS = createRemoteJWKSet(
-  new URL(`${process.env.CLIENT_URL}/api/auth/jwks`),
+  new URL(`${allowedOrigins[0]}/api/auth/jwks`),
 );
 
 const verifyUserToken = async (req, res, next) => {
@@ -513,6 +518,19 @@ async function run() {
       verifyRole("Tenant"),
       async (req, res) => {
         const favoritesData = req.body;
+        const existing = await favoritesCollection.findOne({
+          userId: favoritesData.userId,
+          propertyId: favoritesData.propertyId,
+        });
+
+        if (existing) {
+          return res.json({
+            acknowledged: true,
+            insertedId: existing._id,
+            alreadyExists: true,
+          });
+        }
+
         const result = await favoritesCollection.insertOne(favoritesData);
         res.json(result);
       },
@@ -544,9 +562,14 @@ async function run() {
       async (req, res) => {
         const { itemId } = req.params;
 
-        const result = await favoritesCollection.deleteOne({
-          _id: new ObjectId(itemId),
-        });
+        let query;
+        if (ObjectId.isValid(itemId) && itemId.length === 24) {
+          query = { _id: new ObjectId(itemId) };
+        } else {
+          query = { propertyId: itemId, userId: req.user?.id };
+        }
+
+        const result = await favoritesCollection.deleteOne(query);
 
         res.json(result);
       },

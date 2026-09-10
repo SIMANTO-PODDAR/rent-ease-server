@@ -20,7 +20,7 @@ The Rent-Ease backend powers the server-side operations of the platform by handl
         <img src="https://i.ibb.co.com/kstsRwbQ/Rent-Ease-desktop-view.jpg" alt="Rent-ease Desktop View" width="100%" style="border-radius: 8px;" />
       </td>
       <td valign="top" width="35%">
-        <img src="https://i.ibb.co.com/wh6FcQ68/Rent-Ease-mobile-view.jpg" alt="Rent-ease Mobile View" width="100%" style="border-radius: 8px;" />
+        <img src="https://i.ibb.co.com/Kchhg6XZ/Rent-Ease-mobile-view.jpg" alt="Rent-ease Mobile View" width="100%" style="border-radius: 8px;" />
       </td>
     </tr>
   </table>
@@ -68,8 +68,6 @@ Key security practices include:
 | Session/Auth Helpers | Better Auth |
 | Environment Configuration | dotenv |
 | Cross-Origin Handling | CORS |
-| Payment Processing | Stripe |
-| Validation | express-validator |
 
 ## Installation
 
@@ -81,10 +79,10 @@ Key security practices include:
    ```
 
 3. Configure the required environment variables.
-4. Start the development server:
+4. Start the server:
 
    ```bash
-   npm start
+   node index.js
    ```
 
 ## Environment Variables
