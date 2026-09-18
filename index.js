@@ -69,6 +69,90 @@ const verifyUserToken = async (req, res, next) => {
   }
 };
 
+const extractIdentity = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    req.user = null;
+    return next();
+  }
+
+  const userToken = authHeader.split(" ")[1];
+  if (!userToken) {
+    req.user = null;
+    return next();
+  }
+
+  try {
+    const { payload } = await jwtVerify(userToken, JWKS);
+    req.user = payload;
+  } catch (error) {
+    req.user = null;
+  }
+  next();
+};
+
+function parseUserAgent(ua) {
+  let browser = "Unknown";
+  let browserVersion = "Unknown";
+  let os = "Unknown";
+  let osVersion = "Unknown";
+  let deviceType = "Desktop";
+
+  if (!ua) return { browser, browserVersion, os, osVersion, deviceType };
+
+  if (ua.indexOf("Firefox") > -1) {
+    browser = "Firefox";
+    let match = ua.match(/Firefox\/([0-9.]+)/);
+    if (match) browserVersion = match[1];
+  } else if (ua.indexOf("Edg") > -1) {
+    browser = "Edge";
+    let match = ua.match(/Edg\/([0-9.]+)/);
+    if (match) browserVersion = match[1];
+  } else if (ua.indexOf("Chrome") > -1) {
+    browser = "Chrome";
+    let match = ua.match(/Chrome\/([0-9.]+)/);
+    if (match) browserVersion = match[1];
+  } else if (ua.indexOf("Safari") > -1) {
+    browser = "Safari";
+    let match = ua.match(/Version\/([0-9.]+)/);
+    if (match) browserVersion = match[1];
+  }
+
+  if (ua.indexOf("Windows NT 10.0") > -1) { os = "Windows"; osVersion = "10/11"; }
+  else if (ua.indexOf("Windows NT 6.3") > -1) { os = "Windows"; osVersion = "8.1"; }
+  else if (ua.indexOf("Windows NT 6.2") > -1) { os = "Windows"; osVersion = "8"; }
+  else if (ua.indexOf("Windows NT 6.1") > -1) { os = "Windows"; osVersion = "7"; }
+  else if (ua.indexOf("Mac OS X") > -1) {
+    os = "Mac OS";
+    let match = ua.match(/Mac OS X ([0-9_]+)/);
+    if (match) osVersion = match[1].replace(/_/g, ".");
+  } else if (ua.indexOf("Android") > -1) {
+    os = "Android";
+    let match = ua.match(/Android ([0-9.]+)/);
+    if (match) osVersion = match[1];
+    deviceType = "Mobile";
+  } else if (ua.indexOf("iPhone") > -1) {
+    os = "iOS";
+    let match = ua.match(/OS ([0-9_]+)/);
+    if (match) osVersion = match[1].replace(/_/g, ".");
+    deviceType = "Mobile";
+  } else if (ua.indexOf("iPad") > -1) {
+    os = "iOS";
+    let match = ua.match(/OS ([0-9_]+)/);
+    if (match) osVersion = match[1].replace(/_/g, ".");
+    deviceType = "Tablet";
+  } else if (ua.indexOf("Linux") > -1) {
+    os = "Linux";
+  }
+
+  if (ua.indexOf("Mobi") > -1 && deviceType === "Desktop") {
+    deviceType = "Mobile";
+  }
+
+  return { browser, browserVersion, os, osVersion, deviceType };
+}
+
+
 const verifyRole = (...roles) => {
   // Verify Role ("Tenant", "Owner", "Admin")
   return (req, res, next) => {
@@ -101,6 +185,8 @@ async function run() {
     const favoritesCollection = db.collection("all-favorites");
     const bookingsCollection = db.collection("all-bookings");
     const usersCollection = db.collection("user");
+    const trackingSessionsCollection = db.collection("tracking-sessions");
+    const trackingActivitiesCollection = db.collection("tracking-activities");
 
     //---------     API Endpoint     ---------\\
 
@@ -574,6 +660,137 @@ async function run() {
         res.json(result);
       },
     );
+
+    //----------------------------------------//
+    //---------     Tracking     ---------\\
+
+    app.post("/track/session", extractIdentity, async (req, res) => {
+      // 1. Admin Exclusion
+      if (req.user?.role === "Admin") {
+        return res.json({ message: "Admin not tracked" });
+      }
+
+      const { sessionId, visitorId, entryPage, currentPage } = req.body;
+      if (!sessionId || !visitorId) {
+        return res.status(400).json({ error: "Missing tracking identifiers" });
+      }
+
+      // 2. Extract Data
+      const ipAddress = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+      const rawUserAgent = req.headers["user-agent"] || "";
+      const device = parseUserAgent(rawUserAgent);
+      
+      const geo = {
+        country: req.headers["x-vercel-ip-country"] || req.headers["cf-ipcountry"] || null,
+        region: req.headers["x-vercel-ip-city-region"] || null,
+        city: req.headers["x-vercel-ip-city"] || null,
+      };
+
+      const now = new Date();
+      const userId = req.user?.id || null;
+      const role = req.user?.role || "Guest";
+
+      // 3. Upsert Session
+      const existingSession = await trackingSessionsCollection.findOne({ sessionId });
+      
+      let routeHistory = existingSession ? (existingSession.routeHistory || []) : [];
+      let newPageViewCount = existingSession ? existingSession.pageViewCount : 0;
+      const startedAt = existingSession ? existingSession.startedAt : now;
+      const sessionDurationMs = now.getTime() - new Date(startedAt).getTime();
+
+      if (!existingSession) {
+        newPageViewCount = 1;
+        routeHistory.push({
+          path: currentPage,
+          enteredAt: now,
+          leftAt: now,
+          durationMs: 0
+        });
+      } else if (existingSession.currentPage !== currentPage) {
+        newPageViewCount++;
+        
+        // Finalize previous route
+        if (routeHistory.length > 0) {
+          const lastRoute = routeHistory[routeHistory.length - 1];
+          lastRoute.leftAt = now;
+          lastRoute.durationMs = now.getTime() - new Date(lastRoute.enteredAt).getTime();
+        }
+
+        // Add new route
+        if (routeHistory.length < 100) {
+          routeHistory.push({
+            path: currentPage,
+            enteredAt: now,
+            leftAt: now,
+            durationMs: 0
+          });
+        }
+      } else {
+        // Same page heartbeat, update duration of current page
+        if (routeHistory.length > 0) {
+          const lastRoute = routeHistory[routeHistory.length - 1];
+          lastRoute.leftAt = now;
+          lastRoute.durationMs = now.getTime() - new Date(lastRoute.enteredAt).getTime();
+        }
+      }
+
+      const updateDoc = {
+        $set: {
+          visitorId,
+          userId,
+          role,
+          ipAddress,
+          device,
+          geo,
+          currentPage,
+          pageViewCount: newPageViewCount,
+          routeHistory,
+          lastActiveAt: now,
+          sessionDurationMs,
+          status: "active"
+        },
+        $setOnInsert: {
+          sessionId,
+          entryPage,
+          startedAt: now
+        }
+      };
+
+      await trackingSessionsCollection.updateOne(
+        { sessionId },
+        updateDoc,
+        { upsert: true }
+      );
+
+      res.json({ success: true });
+    });
+
+    app.post("/track/event", extractIdentity, async (req, res) => {
+      if (req.user?.role === "Admin") {
+        return res.json({ message: "Admin not tracked" });
+      }
+
+      const { sessionId, visitorId, type, metadata } = req.body;
+      if (!sessionId || !visitorId || !type) {
+        return res.status(400).json({ error: "Missing event data" });
+      }
+
+      const userId = req.user?.id || null;
+      const role = req.user?.role || "Guest";
+
+      const eventDoc = {
+        sessionId,
+        visitorId,
+        userId,
+        role,
+        type,
+        metadata: metadata || {},
+        createdAt: new Date()
+      };
+
+      await trackingActivitiesCollection.insertOne(eventDoc);
+      res.json({ success: true });
+    });
 
     //----------------------------------------//
     // await client.db("admin").command({ ping: 1 });      //   <--- !
