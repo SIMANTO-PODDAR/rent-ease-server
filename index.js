@@ -792,6 +792,124 @@ async function run() {
       res.json({ success: true });
     });
 
+    // Admin Tracking Stats
+    app.get("/admin/tracking-stats", verifyUserToken, verifyRole("Admin"), async (req, res) => {
+      try {
+        const threshold = new Date(Date.now() - 1 * 60 * 1000); // 1 minutes heartbeat threshold
+        
+        const activeSessions = await trackingSessionsCollection.find({
+          status: "active",
+          lastActiveAt: { $gte: threshold }
+        }).toArray();
+
+        let stats = {
+          activeNow: activeSessions.length,
+          guests: 0,
+          tenants: 0,
+          owners: 0
+        };
+
+        activeSessions.forEach(session => {
+          if (session.role === "Guest") stats.guests++;
+          else if (session.role === "Tenant") stats.tenants++;
+          else if (session.role === "Owner") stats.owners++;
+        });
+
+        res.json(stats);
+      } catch (error) {
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+
+    // Admin Tracking Sessions
+    app.get("/admin/tracking-sessions", verifyUserToken, verifyRole("Admin"), async (req, res) => {
+      try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        const { role, status, search } = req.query;
+        let query = {};
+
+        if (role && role !== "All") {
+          query.role = role;
+        }
+
+        if (status && status !== "All") {
+          if (status === "Active") {
+            const threshold = new Date(Date.now() - 1 * 60 * 1000);
+            query.status = "active";
+            query.lastActiveAt = { $gte: threshold };
+          } else if (status === "Inactive") {
+            const threshold = new Date(Date.now() - 1 * 60 * 1000);
+            query.$or = [
+              { status: "inactive" },
+              { lastActiveAt: { $lt: threshold } }
+            ];
+          }
+        }
+
+        if (search) {
+          query.$or = [
+            { visitorId: { $regex: search, $options: "i" } },
+            { userId: { $regex: search, $options: "i" } },
+            { ipAddress: { $regex: search, $options: "i" } }
+          ];
+        }
+
+        const totalSessions = await trackingSessionsCollection.countDocuments(query);
+        const totalPages = Math.ceil(totalSessions / limit);
+
+        const sessions = await trackingSessionsCollection
+          .find(query)
+          .sort({ lastActiveAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .toArray();
+
+        // Get user info for registered users to avoid duplication
+        const validUserIds = sessions
+          .filter(s => s.userId && ObjectId.isValid(s.userId))
+          .map(s => new ObjectId(s.userId));
+          
+        let usersMap = {};
+        if (validUserIds.length > 0) {
+          const users = await usersCollection.find({ _id: { $in: validUserIds } }).project({ name: 1, email: 1, _id: 1 }).toArray();
+          users.forEach(u => { usersMap[u._id.toString()] = u; });
+        }
+        
+        const enrichedSessions = sessions.map(session => ({
+          ...session,
+          userInfo: session.userId && usersMap[session.userId] ? usersMap[session.userId] : null
+        }));
+
+        res.json({
+          sessions: enrichedSessions,
+          totalSessions,
+          totalPages,
+          currentPage: page
+        });
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+
+    // Admin Tracking Activities for Session
+    app.get("/admin/tracking-activities/:sessionId", verifyUserToken, verifyRole("Admin"), async (req, res) => {
+      try {
+        const { sessionId } = req.params;
+        const activities = await trackingActivitiesCollection
+          .find({ sessionId })
+          .sort({ createdAt: 1 })
+          .toArray();
+
+        res.json(activities);
+      } catch (error) {
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+
     //----------------------------------------//
     // await client.db("admin").command({ ping: 1 });      //   <--- !
     console.log(
